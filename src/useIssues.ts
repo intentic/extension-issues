@@ -29,7 +29,7 @@ export function useIssues() {
     const api = host();
     const queryClient = useQueryClient();
     const spec = issuesQuery();
-    const { data, error, isLoading } = useQuery({
+    const { data, error, isPending } = useQuery({
         ...spec,
         enabled: computed(() => api.sandbox.reachable()),
     });
@@ -58,7 +58,9 @@ export function useIssues() {
         owed: computed<number>(() => owedOf(data.value).owed),
         broken: computed<number>(() => owedOf(data.value).broken),
         error: computed(() => error.value?.message),
-        isLoading,
+        // isPending, not isLoading: true even while `enabled` still gates the fetch on the sandbox handshake, so the view
+        // never reads that window as an empty inbox.
+        isPending,
         setStatus,
         investigate,
         remove,

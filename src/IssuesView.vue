@@ -9,6 +9,7 @@ import {
     Row,
     RowGroup,
     SkeletonRows,
+    SkeletonSnapshot,
     SplitView,
     StatusBadge,
     timeAgo,
@@ -17,6 +18,7 @@ import {
     useAsyncAction,
     useLoadingReveal,
     useNow,
+    vSkeletonSource,
 } from "@intentic/extension-ui";
 import { computed, ref } from "vue";
 import { host } from "./host";
@@ -28,13 +30,13 @@ import { useIssues } from "./useIssues";
 // only triages (investigate/resolve/ignore/reopen/forget); the daemon creates reports. Evidence lives under the row,
 // not on another page.
 
-const { issues, invalid, isLoading, error: listError, setStatus, investigate, remove } = useIssues();
+const { issues, invalid, isPending, error: listError, setStatus, investigate, remove } = useIssues();
 const now = useNow();
 const { notice: actionError, run } = useAsyncAction();
 
 // Only drawn once the wait has earned it: a warm inbox answers within the reveal delay.
 const outline = useLoadingReveal(
-    isLoading,
+    isPending,
     computed(() => `issues`),
 );
 const listNotice = computed<NoticeModel | undefined>(() =>
@@ -89,20 +91,26 @@ const openRun = (conversationId: string): void => host().chat.openSession(conver
         <template #detail>
             <!-- No `pr-1` gutter: this pane has no scrollbar of its own to clear. -->
             <div class="flex flex-col gap-4">
-                <template v-if="outline">
-                    <RowGroup role="status" aria-busy="true">
-                        <template #label><span class="skeleton block h-2.5 w-24" aria-hidden="true" /></template>
-                        <span class="sr-only">Reading your issues…</span>
-                        <SkeletonRows :rows="3" description control />
-                    </RowGroup>
+                <!-- Skeleton rows tell loading from an empty inbox: the inbox (or its empty note) as it last looked here, hand-drawn
+                     rows until it has been seen once. Before the wait has earned an outline nothing is drawn, not the empty note,
+                     which would claim nothing was reported. -->
+                <template v-if="isPending">
+                    <SkeletonSnapshot v-if="outline" of="issues.list" label="Reading your issues…">
+                        <RowGroup role="status" aria-busy="true">
+                            <template #label><span class="skeleton block h-2.5 w-24" aria-hidden="true" /></template>
+                            <span class="sr-only">Reading your issues…</span>
+                            <SkeletonRows :rows="3" description control />
+                        </RowGroup>
+                    </SkeletonSnapshot>
                 </template>
 
-                <p v-else-if="isEmpty" :class="ui.emptyState(`py-8`)">
+                <p v-else-if="isEmpty" v-skeleton-source="`issues.list`" :class="ui.emptyState(`py-8`)">
                     Nothing reported yet. Crashes and problem reports from the sites and apps you embedded the reporter on land here, grouped by what
                     went wrong.
                 </p>
 
-                <template v-else>
+                <!-- One element for every group, so the imprint is the whole inbox as it last stood, in its real groups and rows. -->
+                <div v-else v-skeleton-source="`issues.list`" class="flex flex-col gap-4">
                     <RowGroup v-if="openIssues.length > 0" label="Waiting on you" :count="openIssues.length">
                         <DisclosureRow
                             v-for="issue in openIssues"
@@ -205,7 +213,7 @@ const openRun = (conversationId: string): void => host().chat.openSession(conver
                             </template>
                         </Row>
                     </RowGroup>
-                </template>
+                </div>
 
                 <!-- Confirmed because forgetting drops its history; it returns as a new issue if it happens again. -->
                 <ConfirmDialog
