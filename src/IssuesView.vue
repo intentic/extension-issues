@@ -111,7 +111,7 @@ const openRun = (conversationId: string): void => host().chat.openSession(conver
 
                 <!-- One element for every group, so the imprint is the whole inbox as it last stood, in its real groups and rows. -->
                 <div v-else v-skeleton-source="`issues.list`" class="flex flex-col gap-4">
-                    <RowGroup v-if="openIssues.length > 0" label="Waiting on you" :count="openIssues.length">
+                    <RowGroup v-if="openIssues.length > 0" label="Waiting on you">
                         <DisclosureRow
                             v-for="issue in openIssues"
                             :key="issue.id"
@@ -157,7 +157,7 @@ const openRun = (conversationId: string): void => host().chat.openSession(conver
                         </DisclosureRow>
                     </RowGroup>
 
-                    <RowGroup v-if="working.length > 0" label="Being looked at" :count="working.length">
+                    <RowGroup v-if="working.length > 0" label="Being looked at">
                         <DisclosureRow
                             v-for="issue in working"
                             :key="issue.id"
@@ -189,7 +189,7 @@ const openRun = (conversationId: string): void => host().chat.openSession(conver
                     </RowGroup>
 
                     <!-- Kept, not hidden: past fixes give context, and this is the row the daemon reopens on recurrence. -->
-                    <RowGroup v-if="settled.length > 0" label="Dealt with" :count="settled.length">
+                    <RowGroup v-if="settled.length > 0" label="Dealt with">
                         <Row v-for="issue in settled" :key="issue.id" :title="issue.title" :description="whereWords(issue)">
                             <template #control>
                                 <span class="text-sm text-muted tabular-nums">{{ shortId(issue.id) }}</span>
